@@ -1,0 +1,14 @@
+services:
+  esim-market-ui:
+    image: esim-market-ui:local
+    build:
+      context: ./esim-market-ui
+      dockerfile: Dockerfiles/esim-market-ui
+    ports:
+      - "5001:80"
+    networks:
+      - esim-market-network
+
+networks:
+  esim-market-network:
+    driver: bridge

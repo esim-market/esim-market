@@ -1,0 +1,66 @@
+Read and follow the AGENTS.md file in this repository.
+
+Your task is to implement the initial eSIM Market orchestration layer exactly as specified there.
+
+Before making any changes:
+
+1. Inspect the current repository structure.
+2. Inspect `.gitmodules`.
+3. Verify the existing `esim-market-ui` and `esim-market-backend` submodules.
+4. Inspect the actual UI Dockerfile path under the `esim-market-ui` submodule.
+5. Confirm the UI Docker build context can access every file referenced by its Dockerfile.
+6. Inspect the UI `.dockerignore` and verify that `frontend/node_modules` and `frontend/dist` are excluded from the build context.
+
+Then:
+
+- create or update only `docker-compose.yaml` in the orchestration repository,
+- do not modify application source code,
+- do not modify files inside either Git submodule,
+- do not create Python, React, Vite, nginx, Kubernetes, CI/CD, or application implementation files in this repository,
+- use the existing `esim-market-ui` submodule as the Docker build source,
+- use `./esim-market-ui` as the Docker build context,
+- use the actual existing UI Dockerfile path,
+- build the image as `esim-market-ui:local`,
+- map host port `5001` to container port `80`,
+- attach the UI service to the explicit `esim-market-network` bridge network,
+- do not add a `node_modules` volume,
+- do not add source bind mounts,
+- do not add a restart policy,
+- do not set `container_name`,
+- do not add `network_mode: host`,
+- do not add backend or other services yet.
+
+After implementation, execute and validate, where available:
+
+docker compose config
+docker compose build esim-market-ui
+docker compose up -d
+docker compose ps
+
+Verify that the UI is reachable at:
+
+http://localhost:5001
+
+Then clean up with:
+
+docker compose down
+
+Do not silently change paths, image names, ports, network settings, or architectural requirements.
+
+If the actual repository structure conflicts with AGENTS.md, stop modifying files and report the exact conflict instead of guessing.
+
+At the end, provide a concise completion report containing:
+
+- files created,
+- files modified,
+- detected submodules,
+- actual UI Dockerfile path,
+- Docker build context,
+- image tag,
+- port mapping,
+- network configuration,
+- confirmation that no node_modules volume was added,
+- docker compose validation/build/runtime results,
+- any deviations or blockers.
+
+Do not claim any validation succeeded unless you actually executed it successfully.
