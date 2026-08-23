@@ -1,6 +1,8 @@
 # AGENTS.md — eSIM Market Orchestration Repository
 
-## Purpose
+## Bootstraping / Initializing
+
+### Purpose
 
 This repository is the **orchestration repository** for the eSIM Market project.
 
@@ -14,7 +16,7 @@ The orchestration repository owns only orchestration-related configuration.
 
 ---
 
-## Repository Role
+### Repository Role
 
 The repository coordinates the eSIM Market application stack using Docker Compose.
 
@@ -30,7 +32,7 @@ The backend submodule may exist in the repository, but backend services must not
 
 ---
 
-## Expected Repository Structure
+### Expected Repository Structure
 
 The working tree is expected to resemble:
 
@@ -64,7 +66,7 @@ Do not generate Python or React source files here.
 
 ---
 
-## Git Submodule Boundaries
+### Git Submodule Boundaries
 
 The Git submodules are already configured.
 
@@ -89,7 +91,7 @@ The purpose of this section is to define ownership boundaries, not to perform su
 
 ---
 
-## Allowed Orchestration-Owned Files
+### Allowed Orchestration-Owned Files
 
 The principal runtime configuration file is:
 
@@ -112,7 +114,7 @@ The intent is:
 
 ---
 
-## Docker Compose File
+### Docker Compose File
 
 Create or maintain exactly:
 
@@ -136,7 +138,7 @@ Do not add the legacy top-level Compose `version:` property.
 
 ---
 
-## Initial Compose Scope
+### Initial Compose Scope
 
 For this stage, define a single application service:
 
@@ -150,7 +152,7 @@ The Compose project must remain intentionally small.
 
 ---
 
-## UI Docker Build Configuration
+### UI Docker Build Configuration
 
 The UI image must be built from the `esim-market-ui` Git submodule.
 
@@ -197,7 +199,7 @@ If the existing repository layout differs, report the conflict instead of silent
 
 ---
 
-## UI Image Name
+### UI Image Name
 
 Tag the locally built image explicitly:
 
@@ -209,7 +211,7 @@ Do not use an implicit `latest` tag.
 
 ---
 
-## UI Port Mapping
+### UI Port Mapping
 
 The nginx container serves HTTP internally on:
 
@@ -248,7 +250,7 @@ Do not change nginx's internal port to `5001`.
 
 ---
 
-## Docker Network
+### Docker Network
 
 Define one explicit project bridge network:
 
@@ -271,7 +273,7 @@ This network is intended primarily for communication between eSIM Market contain
 
 Docker Compose would create a bridge network automatically even without this declaration, but this project intentionally defines an explicit project network for clarity and for future backend-service communication.
 
-### Communication with the Windows 11 Host
+#### Communication with the Windows 11 Host
 
 A Docker bridge network does **not** require a special volume or host network mode to access services running on the Windows host.
 
@@ -309,7 +311,7 @@ Do not add `extra_hosts` preemptively if Docker Desktop already provides the hos
 
 ---
 
-## Volumes
+### Volumes
 
 Do not create a Docker Compose volume for:
 
@@ -348,7 +350,7 @@ Do not add source-code bind mounts in this stage.
 
 ---
 
-## Docker Build Caching
+### Docker Build Caching
 
 Do not attempt to reuse host `frontend/node_modules` by mounting it into Docker Compose.
 
@@ -380,7 +382,7 @@ Do not modify the UI Dockerfile from this orchestration repository unless explic
 
 ---
 
-## `.dockerignore` Expectations for the UI Submodule
+### `.dockerignore` Expectations for the UI Submodule
 
 Because the Docker build context is:
 
@@ -437,7 +439,7 @@ Do not modify `.dockerignore` from this orchestration task unless explicitly ins
 
 ---
 
-## Restart Policy
+### Restart Policy
 
 Do not configure an automatic restart policy.
 
@@ -475,7 +477,7 @@ docker compose down
 
 ---
 
-## Container Name
+### Container Name
 
 Do not set a fixed `container_name`.
 
@@ -485,7 +487,7 @@ This preserves normal Compose project isolation and future scaling behavior.
 
 ---
 
-## Environment Variables
+### Environment Variables
 
 Do not introduce application environment variables unless they are actually required.
 
@@ -501,7 +503,7 @@ Do not create `.env` files containing secrets.
 
 ---
 
-## Health Check
+### Health Check
 
 A health check is optional for this first stage.
 
@@ -511,7 +513,7 @@ Do not invent an HTTP health endpoint that the UI image does not provide.
 
 ---
 
-## Docker Compose Example Shape
+### Docker Compose Example Shape
 
 The resulting Compose file should be conceptually similar to:
 
@@ -541,7 +543,7 @@ Inspect the actual repository before writing the final file.
 
 ---
 
-## Commands That Must Work
+### Commands That Must Work
 
 From the orchestration repository root:
 
@@ -589,11 +591,11 @@ docker compose down
 
 ---
 
-## Validation Requirements
+### Validation Requirements
 
 Before considering the task complete, perform these checks where the environment permits them.
 
-### Repository inspection
+#### Repository inspection
 
 Confirm:
 
@@ -604,7 +606,7 @@ Confirm:
 5. host `frontend/node_modules` is excluded from the Docker build context.
 6. host `frontend/dist` is excluded from the Docker build context.
 
-### Compose validation
+#### Compose validation
 
 Run:
 
@@ -614,7 +616,7 @@ docker compose config
 
 The command must succeed.
 
-### Build validation
+#### Build validation
 
 Run:
 
@@ -624,7 +626,7 @@ docker compose build esim-market-ui
 
 The command must succeed if Docker is available and required upstream images are available.
 
-### Runtime validation
+#### Runtime validation
 
 Run:
 
@@ -656,7 +658,7 @@ Do not claim a validation succeeded unless it was actually executed successfully
 
 ---
 
-## Scope Boundaries
+### Scope Boundaries
 
 Do not create or modify application implementation as part of this task.
 
@@ -689,7 +691,7 @@ unless explicitly instructed.
 
 ---
 
-## Design Principles
+### Design Principles
 
 Keep orchestration:
 
@@ -718,7 +720,7 @@ The Compose file must work from the cloned repository root.
 
 ---
 
-## Completion Report
+### Completion Report
 
 After implementation, report:
 
@@ -739,3 +741,23 @@ After implementation, report:
 15. any deviations, blockers, or repository-layout conflicts.
 
 Do not claim a command succeeded unless it was actually executed.
+
+---
+
+## Complex Tuning
+
+**SKIP THIS SECTION FOR NOW.**
+
+This section is intentionally reserved for future work.
+
+Do not infer or implement complex tuning during bootstrap.
+
+---
+
+## Integrating the API SDK with esim connect
+
+**SKIP THIS SECTION FOR NOW.**
+
+This section is intentionally reserved for future work.
+
+Do not infer or implement complex tuning during bootstrap.
