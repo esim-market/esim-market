@@ -746,11 +746,430 @@ Do not claim a command succeeded unless it was actually executed.
 
 ## Complex Tuning
 
-**SKIP THIS SECTION FOR NOW.**
+### Add Backend API and Task-Manager Services
 
-This section is intentionally reserved for future work.
+Extend `docker-compose.yaml` so the orchestration stack contains three application services:
 
-Do not infer or implement complex tuning during bootstrap.
+```text
+esim-market-ui
+esim-market-backend-api
+esim-market-backend-job
+```
+
+The backend services must be built from the existing `./esim-market-backend` Git submodule.
+
+Do not duplicate backend source into the orchestration repository.
+
+### Backend API Service
+
+Add a Compose service named:
+
+```text
+esim-market-backend-api
+```
+
+Build it from:
+
+```yaml
+build:
+  context: ./esim-market-backend
+  dockerfile: Dockerfiles/esim-market-backend-api
+```
+
+Use:
+
+```yaml
+image: esim-market-backend-api:local
+```
+
+Publish:
+
+```text
+host:5002 -> container:8080
+```
+
+using:
+
+```yaml
+ports:
+  - "5002:8080"
+```
+
+Attach it to:
+
+```text
+esim-market-network
+```
+
+### FastAPI Development Reload
+
+The backend API Dockerfile uses:
+
+```dockerfile
+ENTRYPOINT ["uvicorn"]
+```
+
+Therefore Compose `command:` must provide only Uvicorn arguments.
+
+Use:
+
+```yaml
+command:
+  [
+    "backend.gate.integration.main:app",
+    "--reload",
+    "--reload-delay",
+    "3",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "8080"
+  ]
+```
+
+Do not escape the colon in:
+
+```text
+backend.gate.integration.main:app
+```
+
+A quoted YAML string does not require `\:`.
+
+### Source Bind Mount Required for Reload
+
+`--reload` can only react to source changes that are visible inside the running container.
+
+A Dockerfile `COPY` happens only during image build and does not propagate later host changes.
+
+Therefore, for local development, bind-mount the backend source into the Python package path used by the API container.
+
+Preferred container layout:
+
+```text
+/home/backend/
+└── backend/
+    ├── common/
+    ├── repository/
+    ├── usecase/
+    └── gate/
+```
+
+With that layout:
+
+```yaml
+volumes:
+  - ./esim-market-backend/backend:/home/backend/backend
+```
+
+Before applying the mount, inspect the actual backend API Dockerfile and confirm that:
+
+```text
+backend.gate.integration.main:app
+```
+
+is importable with the selected `WORKDIR` and `PYTHONPATH`.
+
+If the Dockerfile currently copies the *contents* of `./backend` directly into `/home/backend` instead of preserving `/home/backend/backend`, report that package-layout conflict and fix it in the backend repository rather than inventing an inconsistent Compose mount.
+
+Do not mount host `.venv`, `__pycache__`, or Python site-packages into the container.
+
+### Backend Job / Task-Manager Service
+
+Add:
+
+```text
+esim-market-backend-job
+```
+
+Build it from:
+
+```yaml
+build:
+  context: ./esim-market-backend
+  dockerfile: Dockerfiles/esim-market-backend-job
+```
+
+Use:
+
+```yaml
+image: esim-market-backend-job:local
+```
+
+The job image uses:
+
+```dockerfile
+ENTRYPOINT ["dumb-init", "--"]
+```
+
+Preserve that entrypoint and use the image's default `CMD` unless the existing Dockerfile requires an explicit task-manager module command.
+
+Do not run Uvicorn from the job image.
+
+The job service does not require a published host port.
+
+Attach it to:
+
+```text
+esim-market-network
+```
+
+### Backend Job Source Mount
+
+The task-manager may use the same source bind mount for local development:
+
+```yaml
+volumes:
+  - ./esim-market-backend/backend:/home/backend/backend
+```
+
+However, a plain Python process does not automatically restart when source files change.
+
+Do not claim the job has hot reload merely because source files are bind-mounted.
+
+For now:
+
+- keep the job long-running,
+- keep `dumb-init` as PID 1,
+- restart the job container manually after source changes,
+- do not introduce `watchfiles`, `watchdog`, or another job reloader unless explicitly requested later.
+
+### MongoDB Service
+
+Add a Compose service named:
+
+```text
+esim-market-mongodb
+```
+
+Use exactly:
+
+```yaml
+image: mongodb/mongodb-community-server:8.3-ubi8-slim
+```
+
+Requirements:
+
+- attach it to `esim-market-network`,
+- persist `/data/db` in a named Compose volume,
+- configure the initial database name through environment interpolation,
+- provide a lightweight MongoDB ping health check,
+- do not hardcode MongoDB credentials,
+- do not publish the MongoDB port to the host unless explicitly required.
+
+Backend containers must address MongoDB by the Compose service name `esim-market-mongodb`, never `localhost`.
+
+### Redis Service
+
+Add a Compose service named:
+
+```text
+esim-market-redis
+```
+
+Use the latest maintained Bitnami Redis image:
+
+```yaml
+image: bitnami/redis:latest
+```
+
+Requirements:
+
+- attach it to `esim-market-network`,
+- persist `/bitnami/redis/data` in a named Compose volume,
+- support a password supplied through environment interpolation,
+- allow an empty password only as the explicit local-development default,
+- provide a lightweight Redis ping health check,
+- do not hardcode Redis credentials,
+- do not publish the Redis port to the host unless explicitly required.
+
+Backend containers must address Redis by the Compose service name `esim-market-redis`, never `localhost`.
+
+Both backend services must wait for healthy MongoDB and Redis services before starting. Define both named data volumes at the top level of `docker-compose.yaml`.
+
+### Backend Environment Configuration
+
+The API and job require MongoDB and Redis configuration.
+
+Do not hardcode credentials in `docker-compose.yaml`.
+
+Use environment-variable interpolation and/or a developer `.env` file excluded from Git.
+
+The services must support the backend Redis settings, including:
+
+```text
+REDIS_CORE_CLUSTER_CONFIG__HOST
+REDIS_CORE_CLUSTER_CONFIG__PORT
+REDIS_CORE_CLUSTER_CONFIG__PASSWORD
+REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS
+REDIS_CORE_CLUSTER_CONFIG__KIND
+```
+
+For local Docker Compose, Redis mode should normally be:
+
+```text
+STAND_ALONE
+```
+
+Do not place real secrets in `AGENTS.md` or committed Compose files.
+
+### Service Networking
+
+Attach all application services to:
+
+```text
+esim-market-network
+```
+
+This includes:
+
+```text
+esim-market-ui
+esim-market-backend-api
+esim-market-backend-job
+```
+
+Future Redis and MongoDB services should use the same network when added.
+
+Containers must address other Compose services by service name, not `localhost`.
+
+Use `host.docker.internal` only when a container intentionally needs to reach a service running on the Windows 11 host.
+
+### Updated Compose Shape
+
+The Compose file should be structurally similar to:
+
+```yaml
+services:
+  esim-market-ui:
+    image: esim-market-ui:local
+    build:
+      context: ./esim-market-ui
+      dockerfile: Dockerfiles/esim-market-ui
+    ports:
+      - "5001:80"
+    networks:
+      - esim-market-network
+
+  esim-market-backend-api:
+    image: esim-market-backend-api:local
+    build:
+      context: ./esim-market-backend
+      dockerfile: Dockerfiles/esim-market-backend-api
+    command:
+      [
+        "backend.gate.integration.main:app",
+        "--reload",
+        "--reload-delay",
+        "3",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080"
+      ]
+    ports:
+      - "5002:8080"
+    volumes:
+      - ./esim-market-backend/backend:/home/backend/backend
+    networks:
+      - esim-market-network
+
+  esim-market-backend-job:
+    image: esim-market-backend-job:local
+    build:
+      context: ./esim-market-backend
+      dockerfile: Dockerfiles/esim-market-backend-job
+    volumes:
+      - ./esim-market-backend/backend:/home/backend/backend
+    networks:
+      - esim-market-network
+
+networks:
+  esim-market-network:
+    driver: bridge
+```
+
+This is a structural template.
+
+Before writing the actual Compose file, inspect both backend Dockerfiles and confirm:
+
+```text
+WORKDIR
+PYTHONPATH
+COPY targets
+ENTRYPOINT
+CMD
+```
+
+match the mount paths and module command.
+
+### Validation
+
+Run:
+
+```bash
+docker compose config
+```
+
+Then:
+
+```bash
+docker compose build \
+  esim-market-ui \
+  esim-market-backend-api \
+  esim-market-backend-job
+```
+
+Start:
+
+```bash
+docker compose up -d
+```
+
+Inspect:
+
+```bash
+docker compose ps
+```
+
+Verify API liveness:
+
+```text
+http://localhost:5002/health/live
+```
+
+If MongoDB and Redis are configured and reachable, verify readiness:
+
+```text
+http://localhost:5002/health/ready
+```
+
+Verify reload:
+
+1. keep `esim-market-backend-api` running,
+2. modify a Python source file under `./esim-market-backend/backend/`,
+3. run:
+
+```bash
+docker compose logs -f esim-market-backend-api
+```
+
+4. confirm Uvicorn detects the source change and reloads after the configured delay.
+
+Do not claim reload works unless it is actually tested.
+
+For the task manager:
+
+```bash
+docker compose logs -f esim-market-backend-job
+```
+
+confirm the long-running job starts and remains running.
+
+Stop with:
+
+```bash
+docker compose down
+```
 
 ---
 

@@ -9,6 +9,100 @@ services:
     networks:
       - esim-market-network
 
+  esim-market-backend-api:
+    image: esim-market-backend-api:local
+    build:
+      context: ./esim-market-backend
+      dockerfile: Dockerfiles/esim-market-backend-api
+    command:
+      - "backend.gate.integration.main:app"
+      - "--reload"
+      - "--reload-delay"
+      - "3"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      MONGO_URI: "${MONGO_URI:-mongodb://esim-market-mongodb:27017}"
+      MONGO_DATABASE: "${MONGO_DATABASE:-esim_market}"
+      REDIS_CORE_CLUSTER_CONFIG__HOST: "${REDIS_CORE_CLUSTER_CONFIG__HOST:-esim-market-redis}"
+      REDIS_CORE_CLUSTER_CONFIG__PORT: "${REDIS_CORE_CLUSTER_CONFIG__PORT:-6379}"
+      REDIS_CORE_CLUSTER_CONFIG__PASSWORD: "${REDIS_CORE_CLUSTER_CONFIG__PASSWORD:-}"
+      REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS: "${REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS:-100}"
+      REDIS_CORE_CLUSTER_CONFIG__KIND: "${REDIS_CORE_CLUSTER_CONFIG__KIND:-STAND_ALONE}"
+    ports:
+      - "5002:8080"
+    volumes:
+      - ./esim-market-backend/backend:/home/backend
+    depends_on:
+      esim-market-mongodb:
+        condition: service_healthy
+      esim-market-redis:
+        condition: service_healthy
+    networks:
+      - esim-market-network
+
+  esim-market-backend-job:
+    image: esim-market-backend-job:local
+    build:
+      context: ./esim-market-backend
+      dockerfile: Dockerfiles/esim-market-backend-job
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      MONGO_URI: "${MONGO_URI:-mongodb://esim-market-mongodb:27017}"
+      MONGO_DATABASE: "${MONGO_DATABASE:-esim_market}"
+      REDIS_CORE_CLUSTER_CONFIG__HOST: "${REDIS_CORE_CLUSTER_CONFIG__HOST:-esim-market-redis}"
+      REDIS_CORE_CLUSTER_CONFIG__PORT: "${REDIS_CORE_CLUSTER_CONFIG__PORT:-6379}"
+      REDIS_CORE_CLUSTER_CONFIG__PASSWORD: "${REDIS_CORE_CLUSTER_CONFIG__PASSWORD:-}"
+      REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS: "${REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS:-100}"
+      REDIS_CORE_CLUSTER_CONFIG__KIND: "${REDIS_CORE_CLUSTER_CONFIG__KIND:-STAND_ALONE}"
+    volumes:
+      - ./esim-market-backend/backend:/home/backend
+    depends_on:
+      esim-market-mongodb:
+        condition: service_healthy
+      esim-market-redis:
+        condition: service_healthy
+    networks:
+      - esim-market-network
+
+  esim-market-mongodb:
+    image: mongodb/mongodb-community-server:8.3-ubi8-slim
+    environment:
+      MONGODB_INITDB_DATABASE: "${MONGO_DATABASE:-esim_market}"
+    volumes:
+      - esim-market-mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)' localhost:27017/admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - esim-market-network
+
+  esim-market-redis:
+    image: bitnami/redis:latest
+    environment:
+      ALLOW_EMPTY_PASSWORD: "${REDIS_ALLOW_EMPTY_PASSWORD:-yes}"
+      REDIS_PASSWORD: "${REDIS_CORE_CLUSTER_CONFIG__PASSWORD:-}"
+    volumes:
+      - esim-market-redis-data:/bitnami/redis/data
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli -a \"$$REDIS_PASSWORD\" ping; else redis-cli ping; fi"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - esim-market-network
+
 networks:
   esim-market-network:
     driver: bridge
+
+volumes:
+  esim-market-mongodb-data:
+  esim-market-redis-data:
