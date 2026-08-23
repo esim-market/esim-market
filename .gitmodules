@@ -1,0 +1,6 @@
+[submodule "esim-market-ui"]
+	path = esim-market-ui
+	url = https://github.com/tolga-kabadurmus/esim-market-ui.git
+[submodule "esim-market-backend"]
+	path = esim-market-backend
+	url = https://github.com/tolga-kabadurmus/esim-market-backend.git
