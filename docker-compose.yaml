@@ -1,9 +1,27 @@
 services:
-  esim-market-ui:
+  esim-market-ui-dev:
+    profiles: ["dev"]
     image: esim-market-ui:local
     build:
       context: ./esim-market-ui
       dockerfile: Dockerfiles/esim-market-ui
+      target: frontend
+    command:
+      ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    volumes:
+      - ./esim-market-ui/frontend:/app
+      - esim-market-ui-node-modules:/app/node_modules
+    ports:
+      - "5001:5173"
+    networks:
+      - esim-market-network
+
+  esim-market-ui:
+    profiles: ["prod"]
+    build:
+      context: ./esim-market-ui
+      dockerfile: Dockerfiles/esim-market-ui
+      target: production
     ports:
       - "5001:80"
     networks:
@@ -106,3 +124,4 @@ networks:
 volumes:
   esim-market-mongodb-data:
   esim-market-redis-data:
+  esim-market-ui-node-modules:
