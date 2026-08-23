@@ -90,6 +90,10 @@ services:
     image: mongodb/mongodb-community-server:8.3-ubi8-slim
     environment:
       MONGODB_INITDB_DATABASE: "${MONGO_DATABASE:-esim_market}"
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-esim_market_root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-esim_market_pass}
+      MONGODB_APP_USERNAME: ${MONGODB_APP_USERNAME:-esim_market_user}
+      MONGODB_APP_PASSWORD: ${MONGODB_APP_PASSWORD:-esim_market_pass}
     volumes:
       - esim-market-mongodb-data:/data/db
     healthcheck:
@@ -106,6 +110,8 @@ services:
     environment:
       ALLOW_EMPTY_PASSWORD: "${REDIS_ALLOW_EMPTY_PASSWORD:-yes}"
       REDIS_PASSWORD: "${REDIS_CORE_CLUSTER_CONFIG__PASSWORD:-}"
+    ports:
+      - "6379:6379"
     volumes:
       - esim-market-redis-data:/bitnami/redis/data
     healthcheck:
