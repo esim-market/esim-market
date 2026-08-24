@@ -13,6 +13,9 @@ services:
       - esim-market-ui-node-modules:/app/node_modules
     ports:
       - "5001:5173"
+    depends_on:
+      esim-market-backend-api:
+        condition: service_healthy
     networks:
       - esim-market-network
 
@@ -24,6 +27,9 @@ services:
       target: production
     ports:
       - "5001:80"
+    depends_on:
+      esim-market-backend-api:
+        condition: service_healthy
     networks:
       - esim-market-network
 
@@ -41,17 +47,31 @@ services:
       - "0.0.0.0"
       - "--port"
       - "8080"
+    env_file:
+      - .env/dev/api.env
     environment:
       PYTHONDONTWRITEBYTECODE: "1"
-      MONGO_URI: "${MONGO_URI:-mongodb://esim-market-mongodb:27017}"
-      MONGO_DATABASE: "${MONGO_DATABASE:-esim_market}"
-      REDIS_CORE_CLUSTER_CONFIG__HOST: "${REDIS_CORE_CLUSTER_CONFIG__HOST:-esim-market-redis}"
-      REDIS_CORE_CLUSTER_CONFIG__PORT: "${REDIS_CORE_CLUSTER_CONFIG__PORT:-6379}"
-      REDIS_CORE_CLUSTER_CONFIG__PASSWORD: "${REDIS_CORE_CLUSTER_CONFIG__PASSWORD:-}"
-      REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS: "${REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS:-100}"
-      REDIS_CORE_CLUSTER_CONFIG__KIND: "${REDIS_CORE_CLUSTER_CONFIG__KIND:-STAND_ALONE}"
+      MONGO_DATABASE: "esim_market"
+      MONGO_ENDPOINT: "esim-market-mongodb:27017"
+      MONGO_USER: "app_db_user"
+      REDIS_CORE_CLUSTER_CONFIG__HOST: "esim-market-redis"
+      REDIS_CORE_CLUSTER_CONFIG__PORT: "6379"
+      REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS: "100"
+      REDIS_CORE_CLUSTER_CONFIG__KIND: "STAND_ALONE"
     ports:
       - "5002:8080"
+    healthcheck:
+      test:
+        - "CMD"
+        - "curl"
+        - "--fail"
+        - "--silent"
+        - "--show-error"
+        - "http://127.0.0.1:8080/health/ready"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
     volumes:
       - ./esim-market-backend/backend:/home/backend
     depends_on:
@@ -67,15 +87,17 @@ services:
     build:
       context: ./esim-market-backend
       dockerfile: Dockerfiles/esim-market-backend-job
+    env_file:
+      - .env/dev/fastapi.env
     environment:
       PYTHONDONTWRITEBYTECODE: "1"
-      MONGO_URI: "${MONGO_URI:-mongodb://esim-market-mongodb:27017}"
-      MONGO_DATABASE: "${MONGO_DATABASE:-esim_market}"
-      REDIS_CORE_CLUSTER_CONFIG__HOST: "${REDIS_CORE_CLUSTER_CONFIG__HOST:-esim-market-redis}"
-      REDIS_CORE_CLUSTER_CONFIG__PORT: "${REDIS_CORE_CLUSTER_CONFIG__PORT:-6379}"
-      REDIS_CORE_CLUSTER_CONFIG__PASSWORD: "${REDIS_CORE_CLUSTER_CONFIG__PASSWORD:-}"
-      REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS: "${REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS:-100}"
-      REDIS_CORE_CLUSTER_CONFIG__KIND: "${REDIS_CORE_CLUSTER_CONFIG__KIND:-STAND_ALONE}"
+      MONGO_URI: "mongodb://app_db_user:app_db_user_pass@localhost:27017/?authSource=esim_market"
+      MONGO_DATABASE: "esim_market"
+      REDIS_CORE_CLUSTER_CONFIG__HOST: "esim-market-redis"
+      REDIS_CORE_CLUSTER_CONFIG__PORT: "6379"
+      REDIS_CORE_CLUSTER_CONFIG__PASSWORD: "t8xzdruIOY"
+      REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS: "100"
+      REDIS_CORE_CLUSTER_CONFIG__KIND: "STAND_ALONE"
     volumes:
       - ./esim-market-backend/backend:/home/backend
     depends_on:
@@ -88,16 +110,23 @@ services:
 
   esim-market-mongodb:
     image: mongodb/mongodb-community-server:8.3-ubi8-slim
+    env_file:
+      - .env/dev/mongodb.env
     environment:
-      MONGODB_INITDB_DATABASE: "${MONGO_DATABASE:-esim_market}"
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-esim_market_root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-esim_market_pass}
-      MONGODB_APP_USERNAME: ${MONGODB_APP_USERNAME:-esim_market_user}
-      MONGODB_APP_PASSWORD: ${MONGODB_APP_PASSWORD:-esim_market_pass}
+      MONGODB_INITDB_DATABASE: "esim_market"
+      MONGODB_INITDB_ROOT_USERNAME: "mongodb_root"
+      MONGODB_APP_USERNAME: "app_db_user"
+    ports:
+      - "27017:27017"
     volumes:
       - esim-market-mongodb-data:/data/db
+      - ./mongodb/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)' localhost:27017/admin"]
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username \"$$MONGODB_INITDB_ROOT_USERNAME\" --password \"$$MONGODB_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)'"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -107,9 +136,8 @@ services:
 
   esim-market-redis:
     image: bitnami/redis:latest
-    environment:
-      ALLOW_EMPTY_PASSWORD: "${REDIS_ALLOW_EMPTY_PASSWORD:-yes}"
-      REDIS_PASSWORD: "${REDIS_CORE_CLUSTER_CONFIG__PASSWORD:-}"
+    env_file:
+      - .env/dev/redis.env
     ports:
       - "6379:6379"
     volumes:

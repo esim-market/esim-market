@@ -1,64 +1,48 @@
 # eSIM Market
 
-`esim-market` is the **orchestration repository** for the eSIM Market project.
+`esim-market` is the top-level orchestration repository for the eSIM Market project. It brings the UI, backend API, background job, MongoDB, and Redis together with Docker Compose.
 
-This repository does not contain the main application source code itself. Its primary responsibility is to bring the eSIM Market components together for local development, integration, and deployment.
+For detailed architecture, development, and orchestration guidance, see the [root `AGENTS.md`](https://github.com/tolga-kabadurmus/esim-market/blob/main/AGENTS.md).
 
-## Orchestration Responsibilities
+## Repositories
 
-This repository contains the Docker Compose configuration required to run the eSIM Market application stack.
-
-Typical contents include:
-
-- `docker-compose.yaml`
-- Environment configuration examples
-- Local development orchestration
-- Integration configuration
-- References to the UI and backend source repositories through Git submodules
-
-## Git Submodules
-
-This repository includes two Git submodules:
-
-1. [`esim-market-ui`](https://github.com/tolga-kabadurmus/esim-market-ui)  
-   React-based frontend application for eSIM Market.
-
-2. [`esim-market-backend`](https://github.com/tolga-kabadurmus/esim-market-backend)  
-   Backend web services and background jobs for eSIM Market.
-
-The repository structure is expected to look similar to:
+- [`esim-market`](https://github.com/tolga-kabadurmus/esim-market) — runs the complete stack and contains the other repositories as Git submodules.
+- [`esim-market-backend`](https://github.com/tolga-kabadurmus/esim-market-backend) — provides the FastAPI service, background job, and database integrations.
+- [`esim-market-ui`](https://github.com/tolga-kabadurmus/esim-market-ui) — provides the React web application and its nginx production image.
 
 ```text
-esim-market/
-├── docker-compose.yaml
-├── ui/          -> esim-market-ui Git submodule
-├── backend/     -> esim-market-backend Git submodule
-└── README.md
+esim-market (Docker Compose)
+├── esim-market-ui
+└── esim-market-backend
+    ├── API
+    └── background job
 ```
 
-## Cloning the Repository
+## Run the complete project
 
-Clone the repository together with its Git submodules:
+Clone the repository with its submodules:
 
 ```bash
-git clone --recurse-submodules https://github.com/REPLACE_WITH_YOUR_GITHUB_USERNAME/esim-market.git
+git clone --recurse-submodules https://github.com/tolga-kabadurmus/esim-market.git
+cd esim-market
 ```
 
-If the repository was already cloned without submodules, initialize them with:
+Provide the local environment files referenced under `.env/dev/`, then start the development stack:
 
 ```bash
-git submodule update --init --recursive
+docker compose --profile dev up --build
 ```
 
-## Running the Stack
-
-Once the repository and its submodules are available locally, the complete application stack can be started using Docker Compose:
+To use the nginx-served UI instead of the Vite development server:
 
 ```bash
-docker compose up --build
+docker compose --profile prod up --build
 ```
 
-## Related Repositories
+Open the UI at <http://localhost:5001> and the API documentation at <http://localhost:5002/docs>.
 
-- [`esim-market-ui`](https://github.com/tolga-kabadurmus/esim-market-ui)
-- [`esim-market-backend`](https://github.com/tolga-kabadurmus/esim-market-backend)
+Stop the stack with:
+
+```bash
+docker compose down
+```

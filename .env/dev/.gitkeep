@@ -1,0 +1,10 @@
+# for redis complete below envvars in redis.env file:
+REDIS_PASSWORD=
+REDIS_PORT_NUMBER=
+
+# for mongo complete below envvars in mongodb.env file:
+MONGODB_INITDB_DATABASE=
+MONGODB_INITDB_ROOT_USERNAME=
+MONGODB_INITDB_ROOT_PASSWORD=
+MONGODB_APP_USERNAME=
+MONGODB_APP_PASSWORD=

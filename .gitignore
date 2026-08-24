@@ -1,0 +1,5 @@
+.env/dev/*
+!.env/dev/.gitkeep
+
+.env/prod/*
+!.env/prod/.gitkeep
