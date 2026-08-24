@@ -45,9 +45,11 @@ services:
       - .env/dev/api.env
     environment:
       PYTHONDONTWRITEBYTECODE: "1"
+      MONGO_DATABASE: "esim_market"
+      MONGO_ENDPOINT: "esim-market-mongodb:27017"
+      MONGO_USER: "app_db_user"
       REDIS_CORE_CLUSTER_CONFIG__HOST: "esim-market-redis"
       REDIS_CORE_CLUSTER_CONFIG__PORT: "6379"
-      MONGO_DATABASE: "esim_market"
       REDIS_CORE_CLUSTER_CONFIG__CONNECTION_POOL_MAX_CONNECTIONS: "100"
       REDIS_CORE_CLUSTER_CONFIG__KIND: "STAND_ALONE"
     ports:

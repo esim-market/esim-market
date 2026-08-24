@@ -994,6 +994,28 @@ Do not hardcode credentials in `docker-compose.yaml`.
 
 Use environment-variable interpolation and/or a developer `.env` file excluded from Git.
 
+The services must support the backend's flat MongoDB settings:
+
+```text
+DEBUG
+MONGO_DSN
+MONGO_ENDPOINT
+MONGO_DB_NAME
+MONGO_USER
+MONGO_PASS
+MONGO_REPL
+```
+
+`MONGO_ENDPOINT`, `MONGO_USER`, and `MONGO_PASS` are required. `MONGO_DB_NAME`
+defaults to `UK1648`, while `MONGO_DSN` and `MONGO_REPL` are optional. If
+`MONGO_DSN` is omitted, the backend constructs it from the separate endpoint,
+database, credentials, and optional replica-set settings. If supplied, the backend
+uses `MONGO_DSN` unchanged.
+
+For Docker Compose, set `MONGO_ENDPOINT` to the MongoDB service name and port, for
+example `esim-market-mongodb:27017`. Do not use `localhost` for container-to-container
+MongoDB traffic.
+
 The services must support the backend Redis settings, including:
 
 ```text
