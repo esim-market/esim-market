@@ -1,0 +1,5 @@
+.env/dev/*
+!.env/dev/dummy
+
+.env/prod/*
+!.env/prod/dummy
